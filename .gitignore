@@ -1,7 +1,22 @@
 .DS_Store
-*.xcuserstate
+
+## Xcode user-specific files
 xcuserdata/
+*.xcuserstate
+
+## Build products
 build/
 DerivedData/
+.build/
 *.ipa
+*.dSYM
 *.dSYM.zip
+*.hmap
+
+## Xcode and Swift tooling
+*.xcworkspace/xcuserdata/
+Carthage/Build/
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
