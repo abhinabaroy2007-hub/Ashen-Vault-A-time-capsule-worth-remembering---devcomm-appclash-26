@@ -20,12 +20,18 @@ struct RelicDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
-        .sensoryFeedback(.success, trigger: unlocked)   // haptic when the seal breaks
         .task {
-            // Sleep until the unlock moment, then flip the screen live.
             let wait = relic.unlockDate.timeIntervalSinceNow
             if wait > 0 {
+                // Still sealed: sleep until the unlock moment, then flip the screen live.
                 do { try await Task.sleep(for: .seconds(wait)) } catch { return }
+                // The seal breaks while you are watching!
+                SoundManager.shared.play("unlock")
+                Haptics.sealBreak()
+            } else {
+                // Already unlocked earlier: a gentler "chest opens" feeling.
+                SoundManager.shared.play("open", volume: 0.8)
+                Haptics.success()
             }
             withAnimation(.easeIn(duration: 1.0)) { unlocked = true }
         }
@@ -39,13 +45,9 @@ struct LockedView: View {
 
     var body: some View {
         ZStack {
-            Backdrop(mood: .sealed)
+            Backdrop(image: "bg_locked")
             VStack(spacing: 24) {
-                Image(systemName: "lock.fill")
-                    .font(.system(size: 72, weight: .light))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(Palette.blood)
-                    .frame(height: 120)
+                Image("chest_sealed").pixelArt().frame(height: 200)
                 Text("SEALED").font(.pixel(22)).foregroundStyle(Palette.blood)
                 Text(relic.title).font(.pixel(12)).foregroundStyle(Palette.bone)
                     .multilineTextAlignment(.center)
@@ -58,6 +60,11 @@ struct LockedView: View {
             }
             .padding()
         }
+        .onAppear {
+            // The chest rattles but refuses to open.
+            SoundManager.shared.play("locked", volume: 0.8)
+            Haptics.warning()
+        }
     }
 }
 
@@ -69,14 +76,11 @@ struct UnlockedView: View {
 
     var body: some View {
         ZStack {
-            Backdrop(mood: .opened)
+            // If unlock_glow.mp4 isn't in the project, you simply see the still image.
+            Backdrop(image: "bg_unlocked", video: "unlock_glow")
             ScrollView {
                 VStack(spacing: 24) {
-                    Image(systemName: "lock.open.fill")
-                        .font(.system(size: 64, weight: .light))
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(Palette.gold)
-                        .frame(height: 110)
+                    Image("chest_open").pixelArt().frame(height: 160)
                         .opacity(bannerVisible ? 1 : 0)
                     Text("SEAL BROKEN")
                         .font(.pixel(22)).foregroundStyle(Palette.gold)
@@ -133,7 +137,10 @@ struct VideoRow: View {
         VideoPlayer(player: player)
             .frame(height: 240)
             .overlay(Rectangle().stroke(Palette.bone, lineWidth: 3))
-            .onAppear { player = AVPlayer(url: FileStore.url(for: filename)) }
+            .onAppear {
+                SoundManager.shared.activateSession()
+                player = AVPlayer(url: FileStore.url(for: filename))
+            }
     }
 }
 
@@ -154,7 +161,7 @@ struct AudioRow: View {
             player?.pause()
             playing = false
         } else {
-            try? AVAudioSession.sharedInstance().setCategory(.playback)
+            SoundManager.shared.activateSession()
             player = AVPlayer(url: FileStore.url(for: filename))
             player?.play()
             playing = true

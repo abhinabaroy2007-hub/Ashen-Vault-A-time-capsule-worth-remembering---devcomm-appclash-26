@@ -11,8 +11,11 @@ final class AudioRecorder {
     func start() async {
         guard await AVAudioApplication.requestRecordPermission() else { return }
         do {
+            // Same setup as SoundManager, so sound effects and recording never fight.
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker])
+            try session.setCategory(.playAndRecord, mode: .default,
+                                    options: [.defaultToSpeaker, .mixWithOthers])
+            try session.setAllowHapticsAndSystemSoundsDuringRecording(true)  // buzz while recording
             try session.setActive(true)
 
             let name = UUID().uuidString + ".m4a"

@@ -5,20 +5,41 @@ struct HomeView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: \Relic.unlockDate) private var relics: [Relic]
     @State private var showingCreate = false
+    @AppStorage("soundOn") private var soundOn = true   // speaker button; saved on the phone
 
     var body: some View {
         NavigationStack {
             ZStack {
-                Backdrop(mood: .home)
+                Backdrop(image: "bg_home", video: "bonfire_loop")
 
-                VStack(spacing: 16) {
-                    Text("ASHEN VAULT")
-                        .font(.pixel(20)).foregroundStyle(Palette.gold)
-                        .padding(.top, 24)
+                VStack(spacing: 20) {
+                    HStack {
+                        Color.clear.frame(width: 36, height: 36)   // balances the speaker button
+                        Spacer()
+                        Text("ASHEN VAULT")
+                            .font(.pixel(50)).foregroundStyle(Palette.gold)
+                         
+                        Spacer()
+                        Button {
+                            soundOn.toggle()
+                            if soundOn {
+                                SoundManager.shared.startAmbient("bonfire_crackle")
+                            } else {
+                                SoundManager.shared.stopAmbient()
+                            }
+                            Haptics.tap()
+                        } label: {
+                            Image(systemName: soundOn ? "speaker.wave.2.fill" : "speaker.slash.fill")
+                                .font(.system(size: 20))
+                                .foregroundStyle(Palette.bone)
+                                .frame(width: 36, height: 36)
+                        }
+                    }
+                    Text("Leave a silent whisper for the soul you become").font(.pixel(20)).foregroundStyle(Palette.blood)
+                    .padding(.horizontal)
+                    .padding(.top, 24)
 
-                    Spacer(minLength: 10)
-                    PixelBonfire().frame(height: 150)
-                    Spacer(minLength: 10)
+                    Spacer()   // the bonfire in the backdrop shows through here
 
                     Button("SEAL A NEW RELIC") { showingCreate = true }
                         .buttonStyle(PixelButtonStyle())
@@ -47,10 +68,21 @@ struct HomeView: View {
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showingCreate) { CreateRelicView() }
             .task { await NotificationManager.requestPermission() }
+            // Crackling fire plays on this screen only, and pauses while you record a voice message.
+            .onAppear { SoundManager.shared.startAmbient("bonfire_crackle") }
+            .onDisappear { SoundManager.shared.stopAmbient() }
+            .onChange(of: showingCreate) { _, showing in
+                if showing {
+                    SoundManager.shared.stopAmbient()
+                } else {
+                    SoundManager.shared.startAmbient("bonfire_crackle")
+                }
+            }
         }
     }
 
     private func destroy(_ relic: Relic) {
+        Haptics.warning()
         for item in relic.items { FileStore.delete(item.filename) }
         NotificationManager.cancel(id: relic.uid.uuidString)
         context.delete(relic)

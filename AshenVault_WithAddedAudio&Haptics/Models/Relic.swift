@@ -1,9 +1,6 @@
 import Foundation
 import SwiftData
 
-// NOTE: this model is called "Relic" on purpose. Don't rename it to "Capsule":
-// SwiftUI already has a built-in shape called Capsule.
-
 enum MemoryKind: String, Codable {
     case photo, video, audio
 
