@@ -1,0 +1,2 @@
+# Ashen-Vault-A-time-capsule-worth-remembering---devcomm-appclash-26
+Ashen Vault - " Leave a silent whisper for the soul you become" , is a time capsule app that lets you lock certain memories in a time capsule designed in retro 16 bit pixel art format and lets you revive those memories after the counter ends. the app is natively built on swiftui and swift language for uses on ios devices / simulators on xcode 
